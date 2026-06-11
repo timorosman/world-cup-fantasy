@@ -55,6 +55,7 @@ const TEAM_NAME_MAP = {
   'Algeria': 'algeria',
   'DR Congo': 'dr_congo',
   'Congo DR': 'dr_congo',
+  'Democratic Republic of the Congo': 'dr_congo',
   'South Africa': 'south_africa',
   'Ghana': 'ghana',
   'Cape Verde': 'cape_verde',
@@ -515,7 +516,18 @@ function applyRemoteState(newState) {
 
 // Helper to look up team object by id (also checks extra API-discovered teams)
 function getTeamById(id) {
-  return TEAMS_DB.find(t => t.id === id) || EXTRA_TEAMS_CACHE[id] || null;
+  if (!id) return null;
+  const team = TEAMS_DB.find(t => t.id === id) || EXTRA_TEAMS_CACHE[id] || null;
+  if (!team) {
+    // Return a safe fallback object to prevent TypeError crashes for old/non-WC teams in saved storage
+    return {
+      id: id,
+      name: id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, ' '),
+      confederation: 'Unknown',
+      rank: 999
+    };
+  }
+  return team;
 }
 
 // 4. Calculations Engine
