@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 World Cup Fantasy League</title>
+  <meta name="description" content="Fantasy Draft League tracker for the 2026 FIFA World Cup. Real-time standings, snake draft board, score logger, and trade hub.">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase SDK (compat mode for simple CDN usage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <!-- Ambient Glow Visuals -->
+  <div class="bg-ambient-glow glow-1"></div>
+  <div class="bg-ambient-glow glow-2"></div>
+  <div class="bg-ambient-glow glow-3"></div>
+
+  <div class="app-container">
+    
+    <!-- Top Bar with Actions -->
+    <div class="header-top-actions">
+      <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle Theme" aria-label="Toggle Theme">
+        🌓
+      </button>
+    </div>
+
+    <!-- Header Section -->
+    <header>
+      <div class="logo-container">
+        <span class="logo-icon" aria-hidden="true">🏆</span>
+        <h1 id="league-title">2026 World Cup Fantasy Draft</h1>
+      </div>
+      <p class="motto" id="header-motto">“Pain, patriotism, and parlay-level delusion.”</p>
+    </header>
+
+    <!-- Notification Toast Deck -->
+    <div id="notifications-box"></div>
+
+    <!-- Live Sync Status Bar -->
+    <div class="sync-status-bar" id="sync-status-bar">
+      <div class="sync-left">
+        <span class="sync-dot sync-dot-syncing" id="sync-status-dot"></span>
+        <span class="sync-label" id="sync-status-label">Connecting to live data…</span>
+        <span style="margin-left: 12px; display: flex; align-items: center; gap: 4px;">
+          <span class="sync-dot" id="firebase-connection-dot" style="width: 8px; height: 8px;"></span>
+          <span class="sync-label" id="firebase-connection-label" style="font-size: 0.8rem;">Firebase not configured</span>
+        </span>
+      </div>
+      <div class="sync-right">
+        <div id="presence-dots" class="presence-dots-container"></div>
+        <span class="sync-source-tag">⚽ worldcup26.ir</span>
+        <button class="btn btn-icon btn-secondary" id="sync-toggle-btn" onclick="toggleSync()">⏸ Pause</button>
+        <button class="btn btn-icon btn-secondary" onclick="manualSync()">🔄 Sync Now</button>
+      </div>
+    </div>
+
+    <!-- Identity Bar -->
+    <div class="identity-bar" id="identity-bar">
+      <div class="identity-left">
+        <span>👤</span>
+        <span>Playing as: <strong id="current-identity-name">Not set</strong></span>
+      </div>
+      <button class="btn btn-icon btn-secondary" onclick="changeIdentity()" style="font-size: 0.8rem;">Switch</button>
+    </div>
+
+    <!-- Tabs Navigation Bar -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" onclick="switchTab('standings-tab')" role="tab" aria-selected="true" aria-controls="standings-tab" id="tab-standings">
+        📊 Standings & Roster
+      </button>
+      <button class="tab-btn" onclick="switchTab('draft-board-tab')" role="tab" aria-selected="false" aria-controls="draft-board-tab" id="tab-draft">
+        🎯 Interactive Draft Board
+      </button>
+      <button class="tab-btn" onclick="switchTab('match-center-tab')" role="tab" aria-selected="false" aria-controls="match-center-tab" id="tab-matches">
+        ⚽ Match & Score Center
+      </button>
+      <button class="tab-btn" onclick="switchTab('trades-waivers-tab')" role="tab" aria-selected="false" aria-controls="trades-waivers-tab" id="tab-trades">
+        🤝 Trades & Waivers
+      </button>
+      <button class="tab-btn" onclick="switchTab('rulebook-admin-tab')" role="tab" aria-selected="false" aria-controls="rulebook-admin-tab" id="tab-rulebook">
+        ⚙️ Rules & Settings
+      </button>
+    </nav>
+
+    <!-- TAB 1: STANDINGS & ROSTERS -->
+    <div id="standings-tab" class="tab-content active" role="tabpanel" aria-labelledby="tab-standings">
+      <div class="grid-split">
+        <!-- Live Leaderboard Card -->
+        <div class="card">
+          <h2 class="card-title">🏆 Live Standings</h2>
+          <div class="leaderboard-table-container">
+            <table class="table-custom" id="leaderboard-table">
+              <thead>
+                <tr>
+                  <th scope="col" style="width: 70px;">Rank</th>
+                  <th scope="col">Manager</th>
+                  <th scope="col">Total Pts</th>
+                  <th scope="col">Team Wins</th>
+                  <th scope="col">KO Teams</th>
+                  <th scope="col">Goals</th>
+                  <th scope="col">Champion Owned</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Roster Information Card -->
+        <div class="card">
+          <h2 class="card-title">⚽ League Overview</h2>
+          <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1.25rem;">
+            Current Phase: <strong id="current-league-phase" class="text-gold">Drafting</strong>
+          </p>
+          <p class="text-secondary" style="font-size: 0.9rem; line-height: 1.5;">
+            Points are calculated live based on logged matches and knockout stage achievements. 
+            Wild Card picks score <strong>1.5x points</strong>.
+          </p>
+          <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-secondary" onclick="switchTab('match-center-tab')">Log Results</button>
+            <button class="btn btn-secondary" onclick="switchTab('trades-waivers-tab')">Manage Roster</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manager Detailed Rosters Section -->
+      <h2 class="font-outfit font-bold" style="font-size: 1.6rem; margin-bottom: 1.25rem; margin-top: 2rem;">👤 Competitor Rosters</h2>
+      <div class="manager-detail-grid" id="managers-picks-grid">
+        <!-- Dynamically loaded -->
+      </div>
+    </div>
+
+    <!-- TAB 2: INTERACTIVE DRAFT BOARD -->
+    <div id="draft-board-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-draft">
+      <div class="draft-container">
+        
+        <!-- Drafting HUD -->
+        <div class="card" id="draft-controls-area">
+          <div class="draft-header-panel">
+            <div>
+              <label>Currently Picking</label>
+              <h2 id="draft-active-manager" class="text-gold font-outfit" style="font-size: 2.2rem; font-weight: 800; line-height: 1.1;">-</h2>
+              <div id="draft-active-round" class="text-secondary" style="font-weight: 600; margin-top: 4px;">Round -</div>
+              <div id="draft-active-restriction" class="text-success" style="font-weight: 700; margin-top: 2px;">Restriction: -</div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end;">
+              <div class="flex-gap-small">
+                <button class="btn btn-secondary btn-icon" onclick="undoLastDraftPick()">Undo Pick</button>
+                <button class="btn btn-secondary btn-icon" onclick="autoDraftRemaining()">Simulate Rest</button>
+              </div>
+              <p class="text-muted" style="font-size: 0.8rem; text-align: right; margin-top: 10px;">
+                Snake format applied. Highlighted cards show qualified teams matching the current slot restriction.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Scrollable timeline -->
+          <div class="draft-order-strip" id="draft-order-strip">
+            <!-- Dynamically loaded cards -->
+          </div>
+        </div>
+
+        <!-- Available Teams Panel -->
+        <div class="draft-teams-section">
+          <h2 class="card-title" style="border: none; margin-bottom: 0.5rem;">🌍 Available Teams</h2>
+          <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 1.25rem;">
+            Click on a colored card to draft that team for the current manager's active slot. Disabled (darker) cards represent teams that don't match the current slot restriction or have already been drafted.
+          </p>
+
+          <!-- Teams Grid -->
+          <div class="teams-grid" id="draft-teams-grid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 3: MATCH & SCORE CENTER -->
+    <div id="match-center-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-matches">
+
+      <!-- Live Match Ticker -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <h2 class="card-title">🌐 Live Match Ticker
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400; margin-left: auto;">Auto-refreshes every 90s · ⚡ = your drafted teams</span>
+        </h2>
+        <div id="live-ticker-list" class="live-ticker-list">
+          <div class="text-muted" style="padding: 16px; text-align: center;">Loading match data…</div>
+        </div>
+      </div>
+
+      <div class="grid-split">
+        
+        <!-- Match Logger Form -->
+        <div class="card">
+          <h2 class="card-title">⚽ Log Match Results</h2>
+          <form id="match-logger-form">
+            <div class="grid-2col" style="margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="match-teamA">Team A</label>
+                <select id="match-teamA" onchange="updateShootoutSelect()" required>
+                  <!-- Dynamically loaded options -->
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="match-teamB">Team B</label>
+                <select id="match-teamB" onchange="updateShootoutSelect()" required>
+                  <!-- Dynamically loaded options -->
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2col" style="margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="match-goalsA">Goals Scored by Team A</label>
+                <input type="number" id="match-goalsA" value="0" min="0" oninput="updateShootoutSelect()" required>
+              </div>
+              <div class="form-group">
+                <label for="match-goalsB">Goals Scored by Team B</label>
+                <input type="number" id="match-goalsB" value="0" min="0" oninput="updateShootoutSelect()" required>
+              </div>
+            </div>
+
+            <!-- Penalties & Disciplinary fields -->
+            <h3 class="font-outfit font-bold" style="font-size: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Disciplinary & Match Incidents</h3>
+            
+            <div class="grid-2col" style="margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="match-ownGoalsA">Own Goals by Team A (-1pt ea)</label>
+                <input type="number" id="match-ownGoalsA" value="0" min="0">
+              </div>
+              <div class="form-group">
+                <label for="match-ownGoalsB">Own Goals by Team B (-1pt ea)</label>
+                <input type="number" id="match-ownGoalsB" value="0" min="0">
+              </div>
+            </div>
+
+            <div class="grid-2col" style="margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="match-redCardsA">Red Cards for Team A (-2pts ea)</label>
+                <input type="number" id="match-redCardsA" value="0" min="0">
+              </div>
+              <div class="form-group">
+                <label for="match-redCardsB">Red Cards for Team B (-2pts ea)</label>
+                <input type="number" id="match-redCardsB" value="0" min="0">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label for="match-shootout-winner">Penalty Shootout Winner (+2pts)</label>
+              <select id="match-shootout-winner" disabled>
+                <option value="">-- Shootout Only on Draw --</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-gold" style="width: 100%;">Record Match</button>
+          </form>
+        </div>
+
+        <!-- Match Log History -->
+        <div class="card">
+          <h2 class="card-title">📋 Score Log History</h2>
+          <div class="match-log-list" id="match-log-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Knockout Stage Progression Tracker -->
+      <div class="card margin-top-md">
+        <h2 class="card-title">🏆 Knockout Stage Progression Bonuses</h2>
+        <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Ticking checkpoints below awards flat advancement bonuses to the owning manager's team. (Group Adv: +5, R32 appearance: +3, R16: +5, QF: +7, SF: +10, Final: +15, World Cup Champion: +25).
+        </p>
+        <div class="leaderboard-table-container">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th scope="col">Drafted Team</th>
+                <th scope="col" style="text-align: center;">Adv Group (+5)</th>
+                <th scope="col" style="text-align: center;">R32 (+3)</th>
+                <th scope="col" style="text-align: center;">R16 (+5)</th>
+                <th scope="col" style="text-align: center;">QF (+7)</th>
+                <th scope="col" style="text-align: center;">SF (+10)</th>
+                <th scope="col" style="text-align: center;">Final (+15)</th>
+                <th scope="col" style="text-align: center;">Champ (+25)</th>
+              </tr>
+            </thead>
+            <tbody id="knockout-progression-tbody">
+              <!-- Dynamically loaded drafted teams -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: TRADES & WAIVERS -->
+    <div id="trades-waivers-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-trades">
+      <div class="grid-split">
+        
+        <!-- Trades Form -->
+        <div class="card">
+          <h2 class="card-title">🤝 Propose Trade</h2>
+          <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">
+            Trades are allowed <strong>only through the end of the group stage</strong>. Managers must exchange items that preserve roster slot integrity (UEFA for UEFA, CONMEBOL for CONMEBOL, etc. or using the Wild Card).
+          </p>
+          <form id="trade-logger-form">
+            <div class="grid-2col" style="margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="trade-managerA">Manager A</label>
+                <select id="trade-managerA" onchange="handleTradeManagerAChange()" required>
+                  <!-- Loaded dynamically -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="trade-managerB">Manager B</label>
+                <select id="trade-managerB" onchange="handleTradeManagerBChange()" required>
+                  <!-- Loaded dynamically -->
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2col" style="margin-bottom: 1.5rem;">
+              <div class="form-group">
+                <label for="trade-teamA">Team to Trade from Manager A</label>
+                <select id="trade-teamA" required>
+                  <option value="">-- Select Manager A first --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="trade-teamB">Team to Trade from Manager B</label>
+                <select id="trade-teamB" required>
+                  <option value="">-- Select Manager B first --</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%;">Execute Trade</button>
+          </form>
+        </div>
+
+        <!-- Waivers Form -->
+        <div class="card">
+          <h2 class="card-title">🔄 Waiver Wire Claim</h2>
+          <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">
+            After the group stage, managers may replace eliminated teams with undrafted remaining teams. 
+            Waiver priority goes to the <strong>lowest ranking score</strong>. Max 1 waiver per manager.
+          </p>
+          <form id="waiver-logger-form">
+            <div class="form-group">
+              <label for="waiver-manager">Manager</label>
+              <select id="waiver-manager" onchange="handleWaiverManagerChange()" required>
+                <!-- Loaded dynamically by standings priority -->
+              </select>
+            </div>
+
+            <div class="grid-2col" style="margin-bottom: 1.5rem;">
+              <div class="form-group">
+                <label for="waiver-drop">Team to Drop (Eliminated)</label>
+                <select id="waiver-drop" required>
+                  <option value="">-- Select Manager first --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="waiver-add">Team to Add (Undrafted)</label>
+                <select id="waiver-add" required>
+                  <!-- Loaded dynamically from undrafted pool -->
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-gold" style="width: 100%;">Process Waiver Swap</button>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Transaction Log History -->
+      <div class="card margin-top-md">
+        <h2 class="card-title">📜 Transaction History</h2>
+        <div class="trade-log-list" id="trade-log-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: RULEBOOK & DIAGNOSTICS -->
+    <div id="rulebook-admin-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-rulebook">
+      <div class="grid-split">
+        
+        <!-- Rules Reference -->
+        <div class="card">
+          <h2 class="card-title">📜 Official League Rules</h2>
+          
+          <div class="rule-group">
+            <div class="rule-group-title">Roster Structure</div>
+            <ul class="rule-list">
+              <li>1 European team (UEFA)</li>
+              <li>1 South American team (CONMEBOL)</li>
+              <li>1 African team (CAF)</li>
+              <li>1 Asian team (AFC)</li>
+              <li>1 North American team (CONCACAF)</li>
+              <li>1 Wild Card team (any confederation, no duplicates, <strong>1.5x score multiplier</strong>)</li>
+            </ul>
+          </div>
+
+          <div class="rule-group">
+            <div class="rule-group-title">Scoring Structure</div>
+            <ul class="rule-list">
+              <li>Group Stage Win: <strong>3 pts</strong></li>
+              <li>Group Stage Draw: <strong>1 pt</strong></li>
+              <li>Goal Scored: <strong>+1 pt</strong></li>
+              <li>Clean Sheet: <strong>+1 pt</strong></li>
+              <li>Advance to Knockout: <strong>+5 pts</strong></li>
+              <li>Round of 32 Appearance: <strong>+3 pts</strong></li>
+              <li>Round of 16 Appearance: <strong>+5 pts</strong></li>
+              <li>Quarterfinals Appearance: <strong>+7 pts</strong></li>
+              <li>Semifinals Appearance: <strong>+10 pts</strong></li>
+              <li>Final Appearance: <strong>+15 pts</strong></li>
+              <li>Champion Bonus: <strong>+25 pts</strong></li>
+            </ul>
+          </div>
+
+          <div class="rule-group">
+            <div class="rule-group-title">Disciplinary & Bonuses</div>
+            <ul class="rule-list">
+              <li>Penalty Shootout Win: <strong>+2 pts</strong></li>
+              <li>Upset Bonus (win vs higher-ranked FIFA opponent): <strong>+3 pts</strong></li>
+              <li>Red Card: <strong>-2 pts</strong></li>
+              <li>Own Goal: <strong>-1 pt</strong></li>
+            </ul>
+          </div>
+
+          <div class="rule-group">
+            <div class="rule-group-title">Tiebreakers (Descending Order)</div>
+            <ul class="rule-list">
+              <li>Most total wins from drafted teams</li>
+              <li>Most knockout-stage teams</li>
+              <li>Most goals scored</li>
+              <li>World Cup Champion ownership</li>
+              <li>Coin flip</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Admin Dashboard & Diagnostics -->
+        <div class="card">
+          <h2 class="card-title">⚙️ Admin Control Panel</h2>
+          
+          <label>Set Current League Phase</label>
+          <div class="flex-gap-small" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-icon" onclick="changePhase('drafting')">Drafting</button>
+            <button class="btn btn-secondary btn-icon" onclick="changePhase('group_stage')">Group Stage</button>
+            <button class="btn btn-secondary btn-icon" onclick="changePhase('knockout_stage')">Knockout Stage</button>
+            <button class="btn btn-secondary btn-icon" onclick="changePhase('finished')">Completed</button>
+          </div>
+
+          <label>Tiebreaker Management</label>
+          <div class="flex-gap-small" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-icon" onclick="triggerCoinFlip()">🪙 Resolve Coin Flip</button>
+            <button class="btn btn-secondary btn-icon" onclick="clearCoinFlip()">Clear Flip</button>
+          </div>
+
+          <label>Data Backup & Operations</label>
+          <div class="flex-gap-small" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <button class="btn btn-gold btn-icon" onclick="exportStateJSON()">Export JSON Backup</button>
+            <button class="btn btn-secondary btn-icon" onclick="importStateJSON()">Import JSON Backup</button>
+            <button class="btn btn-danger btn-icon" onclick="resetDraftConfirm()">⚠️ Reset League</button>
+          </div>
+
+          <label>Internal League State (JSON)</label>
+          <textarea id="diagnostics-state-json" style="width: 100%; height: 180px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-muted); font-family: monospace; font-size: 0.75rem; border-radius: 8px; padding: 10px;" readonly></textarea>
+        </div>
+
+      </div>
+
+      <!-- Firebase Multiplayer Setup -->
+      <div class="card margin-top-md">
+        <h2 class="card-title">🔥 Firebase Multiplayer Setup</h2>
+        <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Connect Firebase to enable <strong>remote drafting</strong> and real-time sync across all 6 managers' devices.
+          Create a free Firebase project at <a href="https://console.firebase.google.com" target="_blank" style="color: var(--accent-gold);">console.firebase.google.com</a>, 
+          then paste the <code>firebaseConfig</code> object below.
+        </p>
+
+        <div class="form-group">
+          <label>Firebase Config JSON</label>
+          <textarea id="firebase-config-input" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-project.firebaseapp.com",
+  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abc123"
+}' style="width: 100%; height: 160px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); font-family: monospace; font-size: 0.8rem; border-radius: 8px; padding: 10px;"></textarea>
+        </div>
+
+        <div class="flex-gap-small" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <button class="btn btn-gold" onclick="applyFirebaseConfig()">🔗 Connect Firebase</button>
+          <button class="btn btn-secondary" onclick="disconnectFirebase()">✖ Disconnect</button>
+          <button class="btn btn-secondary" onclick="changeIdentity()">👤 Change Identity</button>
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+          <strong>Quick Setup Guide:</strong>
+          <ol style="padding-left: 1.25rem; margin-top: 0.5rem;">
+            <li>Go to <a href="https://console.firebase.google.com" target="_blank" style="color: var(--primary);">Firebase Console</a> → Create Project</li>
+            <li>Build → Realtime Database → Create Database → Start in <strong>test mode</strong></li>
+            <li>Project Settings (gear) → Your apps → Web app (&lt;/&gt;) → Register</li>
+            <li>Copy the <code>firebaseConfig</code> object and paste it above</li>
+            <li>Click "Connect Firebase" → Share this page URL with all 6 managers!</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="firebase-sync.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
