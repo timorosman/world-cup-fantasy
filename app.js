@@ -4,7 +4,13 @@
 // LIVE SYNC ENGINE — worldcup26.ir API Integration
 // ═══════════════════════════════════════════════════════════
 
-const LIVE_API_URL = 'https://worldcup26.ir/get/games';
+const LIVE_API_BASE = 'https://worldcup26.ir/get/games';
+const CORS_PROXIES = [
+  (url) => `https://corsproxy.io/?${url}`,                       // Proxy 1
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,  // Proxy 2
+  (url) => url                                                     // Direct (works if CORS is enabled)
+];
+let activeProxyIndex = 0; // Remember which proxy last worked
 const SYNC_INTERVAL_MS = 90000; // 90 seconds
 
 let syncIntervalHandle = null;
@@ -12,6 +18,30 @@ let syncEnabled = true;
 let lastSyncTime = null;
 let lastSyncMatchCount = 0;
 let apiMatchCache = []; // Raw API games for the live ticker
+
+// Fetch with proxy fallback — tries the last working proxy first, then cycles through others
+async function fetchWithCorsProxy(baseUrl) {
+  const proxyOrder = [];
+  // Start with the active proxy, then try the rest
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    proxyOrder.push((activeProxyIndex + i) % CORS_PROXIES.length);
+  }
+
+  for (const idx of proxyOrder) {
+    const proxyUrl = CORS_PROXIES[idx](baseUrl);
+    try {
+      const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      activeProxyIndex = idx; // Remember which one worked
+      console.log(`[Sync] Fetched via proxy #${idx}: ${proxyUrl.substring(0, 60)}…`);
+      return data;
+    } catch (e) {
+      console.warn(`[Sync] Proxy #${idx} failed: ${e.message}`);
+    }
+  }
+  throw new Error('All CORS proxies failed');
+}
 
 // Maps API English team names → our internal team IDs
 // Covers all 48 qualified 2026 World Cup teams
@@ -117,9 +147,7 @@ function getTeamByIdExtended(id) {
 async function fetchAndSyncMatches() {
   try {
     updateSyncStatusUI('syncing');
-    const resp = await fetch(LIVE_API_URL);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    const data = await fetchWithCorsProxy(LIVE_API_BASE);
     const games = data.games || [];
 
     // Cache the full API response for the live ticker
