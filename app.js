@@ -647,7 +647,19 @@ function calculateStats() {
     let hasChampion = false;
 
     const picksWithScores = picks.map(p => {
-      const stats = teamStats[p.teamId];
+      const stats = teamStats[p.teamId] || {
+        wins: 0,
+        draws: 0,
+        goalsScored: 0,
+        cleanSheets: 0,
+        ownGoals: 0,
+        redCards: 0,
+        shootoutWins: 0,
+        upsetBonuses: 0,
+        matchPoints: 0,
+        knockoutPoints: 0,
+        totalPoints: 0
+      };
       const isWildcard = p.isWildCard;
       const teamMultiplier = isWildcard ? 1.5 : 1;
       const finalTeamPoints = stats.totalPoints * teamMultiplier;
