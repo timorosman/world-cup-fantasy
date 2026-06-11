@@ -82,7 +82,7 @@ const TEAM_NAME_MAP = {
   'Curacao': 'curacao',
   'Haiti': 'haiti',
 
-  // OFC
+  // AFC (grouped for draft constraints)
   'New Zealand': 'new_zealand'
 };
 
@@ -390,8 +390,8 @@ const TEAMS_DB = [
   { id: 'curacao', name: 'Curaçao', confederation: 'CONCACAF', rank: 82 },
   { id: 'haiti', name: 'Haiti', confederation: 'CONCACAF', rank: 83 },
 
-  // OFC (1 team)
-  { id: 'new_zealand', name: 'New Zealand', confederation: 'OFC', rank: 94 }
+  // OFC grouped as AFC for drafting purposes
+  { id: 'new_zealand', name: 'New Zealand', confederation: 'AFC', rank: 94 }
 ];
 
 // Managers
