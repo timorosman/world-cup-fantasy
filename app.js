@@ -395,41 +395,41 @@ const MANAGERS = ['Gio', 'Charlie', 'Justin', 'Aarya', 'Nico', 'Timor'];
 
 // Draft rounds template
 const DRAFT_ORDER = [
-  // Round 1 - Europe
-  { round: 1, confed: 'UEFA', manager: 'Gio' },
-  { round: 1, confed: 'UEFA', manager: 'Charlie' },
-  { round: 1, confed: 'UEFA', manager: 'Justin' },
-  { round: 1, confed: 'UEFA', manager: 'Aarya' },
-  { round: 1, confed: 'UEFA', manager: 'Nico' },
-  { round: 1, confed: 'UEFA', manager: 'Timor' },
-  // Round 2 - South America
-  { round: 2, confed: 'CONMEBOL', manager: 'Timor' },
-  { round: 2, confed: 'CONMEBOL', manager: 'Nico' },
-  { round: 2, confed: 'CONMEBOL', manager: 'Aarya' },
-  { round: 2, confed: 'CONMEBOL', manager: 'Justin' },
-  { round: 2, confed: 'CONMEBOL', manager: 'Charlie' },
-  { round: 2, confed: 'CONMEBOL', manager: 'Gio' },
-  // Round 3 - Africa
-  { round: 3, confed: 'CAF', manager: 'Gio' },
-  { round: 3, confed: 'CAF', manager: 'Charlie' },
-  { round: 3, confed: 'CAF', manager: 'Justin' },
-  { round: 3, confed: 'CAF', manager: 'Aarya' },
-  { round: 3, confed: 'CAF', manager: 'Nico' },
-  { round: 3, confed: 'CAF', manager: 'Timor' },
-  // Round 4 - Asia
-  { round: 4, confed: 'AFC', manager: 'Timor' },
-  { round: 4, confed: 'AFC', manager: 'Nico' },
-  { round: 4, confed: 'AFC', manager: 'Aarya' },
-  { round: 4, confed: 'AFC', manager: 'Justin' },
-  { round: 4, confed: 'AFC', manager: 'Charlie' },
-  { round: 4, confed: 'AFC', manager: 'Gio' },
-  // Round 5 - North America
-  { round: 5, confed: 'CONCACAF', manager: 'Gio' },
-  { round: 5, confed: 'CONCACAF', manager: 'Charlie' },
-  { round: 5, confed: 'CONCACAF', manager: 'Justin' },
-  { round: 5, confed: 'CONCACAF', manager: 'Aarya' },
-  { round: 5, confed: 'CONCACAF', manager: 'Nico' },
-  { round: 5, confed: 'CONCACAF', manager: 'Timor' },
+  // Round 1
+  { round: 1, confed: 'Any', manager: 'Gio' },
+  { round: 1, confed: 'Any', manager: 'Charlie' },
+  { round: 1, confed: 'Any', manager: 'Justin' },
+  { round: 1, confed: 'Any', manager: 'Aarya' },
+  { round: 1, confed: 'Any', manager: 'Nico' },
+  { round: 1, confed: 'Any', manager: 'Timor' },
+  // Round 2
+  { round: 2, confed: 'Any', manager: 'Timor' },
+  { round: 2, confed: 'Any', manager: 'Nico' },
+  { round: 2, confed: 'Any', manager: 'Aarya' },
+  { round: 2, confed: 'Any', manager: 'Justin' },
+  { round: 2, confed: 'Any', manager: 'Charlie' },
+  { round: 2, confed: 'Any', manager: 'Gio' },
+  // Round 3
+  { round: 3, confed: 'Any', manager: 'Gio' },
+  { round: 3, confed: 'Any', manager: 'Charlie' },
+  { round: 3, confed: 'Any', manager: 'Justin' },
+  { round: 3, confed: 'Any', manager: 'Aarya' },
+  { round: 3, confed: 'Any', manager: 'Nico' },
+  { round: 3, confed: 'Any', manager: 'Timor' },
+  // Round 4
+  { round: 4, confed: 'Any', manager: 'Timor' },
+  { round: 4, confed: 'Any', manager: 'Nico' },
+  { round: 4, confed: 'Any', manager: 'Aarya' },
+  { round: 4, confed: 'Any', manager: 'Justin' },
+  { round: 4, confed: 'Any', manager: 'Charlie' },
+  { round: 4, confed: 'Any', manager: 'Gio' },
+  // Round 5
+  { round: 5, confed: 'Any', manager: 'Gio' },
+  { round: 5, confed: 'Any', manager: 'Charlie' },
+  { round: 5, confed: 'Any', manager: 'Justin' },
+  { round: 5, confed: 'Any', manager: 'Aarya' },
+  { round: 5, confed: 'Any', manager: 'Nico' },
+  { round: 5, confed: 'Any', manager: 'Timor' },
   // Round 6 - Wild Card
   { round: 6, confed: 'Wild Card', manager: 'Timor' },
   { round: 6, confed: 'Wild Card', manager: 'Nico' },
@@ -733,11 +733,19 @@ function makeDraftPick(teamId) {
     return;
   }
 
-  // 2. Confederation restriction check
+  // 2. Confederation restriction check (must be unique federation for rounds 1-5, any for wild card round 6)
   const isWildCardRound = (confed === 'Wild Card');
-  if (!isWildCardRound && team.confederation !== confed) {
-    showNotification(`Round ${round} requires a ${confed} team. ${team.name} is ${team.confederation}.`, "error");
-    return;
+  if (!isWildCardRound) {
+    const myRounds1to5Picks = state.draftPicks.filter(p => p.manager === manager && p.round < 6);
+    const hasConfed = myRounds1to5Picks.some(p => {
+      const t = getTeamById(p.teamId);
+      return t && t.confederation === team.confederation;
+    });
+    
+    if (hasConfed) {
+      showNotification(`You already drafted a ${team.confederation} team in rounds 1-5! You must select a team from one of your remaining federations.`, "error");
+      return;
+    }
   }
 
   // Add pick
@@ -838,6 +846,17 @@ function deleteMatch(matchId) {
 }
 
 // 7. Trade and Waiver Portal Logic
+function checkRosterFederationValidity(teams) {
+  const confeds = teams.map(t => t ? t.confederation : null).filter(Boolean);
+  const uniqueConfeds = new Set(confeds);
+  // Must cover CONMEBOL, UEFA, CONCACAF, CAF, AFC (5 unique federations)
+  return uniqueConfeds.has('UEFA') &&
+         uniqueConfeds.has('CONMEBOL') &&
+         uniqueConfeds.has('CAF') &&
+         uniqueConfeds.has('AFC') &&
+         uniqueConfeds.has('CONCACAF');
+}
+
 function executeTrade(managerA, teamAId, managerB, teamBId) {
   if (state.leaguePhase !== 'group_stage') {
     showNotification("Trades are only allowed during the Group Stage!", "error");
@@ -856,16 +875,25 @@ function executeTrade(managerA, teamAId, managerB, teamBId) {
   const pickA = state.draftPicks[pickAIdx];
   const pickB = state.draftPicks[pickBIdx];
 
-  // Enforce confederation slot integrity:
-  // Since each manager must have 1 UEFA, 1 CONMEBOL, 1 CAF, 1 AFC, 1 CONCACAF, and 1 Wild Card,
-  // trades must be slot-compatible. The simplest rule is: either they trade teams of the SAME confederation,
-  // OR one of the teams being traded occupies a Wild Card slot.
-  // Let's verify if the trade keeps team structure legal.
-  // Each manager's roster has slots. When trading:
-  // managerA gets teamB, managerB gets teamA.
-  // Let's inspect the confederations:
   const teamAObj = getTeamById(teamAId);
   const teamBObj = getTeamById(teamBId);
+
+  // Get current rosters for A and B
+  const rosterA = state.draftPicks.filter(p => p.manager === managerA).map(p => getTeamById(p.teamId));
+  const rosterB = state.draftPicks.filter(p => p.manager === managerB).map(p => getTeamById(p.teamId));
+
+  // Simulate swap
+  const newRosterA = rosterA.map(t => t.id === teamAId ? teamBObj : t);
+  const newRosterB = rosterB.map(t => t.id === teamBId ? teamAObj : t);
+
+  if (!checkRosterFederationValidity(newRosterA)) {
+    showNotification(`Trade rejected: ${managerA} must maintain at least one team from each of the 5 federations.`, "error");
+    return;
+  }
+  if (!checkRosterFederationValidity(newRosterB)) {
+    showNotification(`Trade rejected: ${managerB} must maintain at least one team from each of the 5 federations.`, "error");
+    return;
+  }
 
   // Swap the teams in the picks list
   pickA.teamId = teamBId;
@@ -911,9 +939,17 @@ function executeWaiver(manager, dropTeamId, addTeamId) {
     return;
   }
 
-  // Check drop team is "eliminated" (not required strictly by code, but we can verify it has not advanced or user confirms)
+  // Verify drop/add maintains roster integrity (at least 1 of each of 5 federations)
   const dropTeamObj = getTeamById(dropTeamId);
   const addTeamObj = getTeamById(addTeamId);
+
+  const roster = state.draftPicks.filter(p => p.manager === manager).map(p => getTeamById(p.teamId));
+  const newRoster = roster.map(t => t.id === dropTeamId ? addTeamObj : t);
+
+  if (!checkRosterFederationValidity(newRoster)) {
+    showNotification(`Waiver rejected: dropping ${dropTeamObj.name} and adding ${addTeamObj.name} would leave you without representation for one of the 5 required federations.`, "error");
+    return;
+  }
 
   // Perform waiver swap
   state.draftPicks[pickIdx].teamId = addTeamId;
@@ -1119,11 +1155,32 @@ function renderDraftRoom(teamStats) {
     return;
   }
 
+  // Get active manager's already drafted federations (non-wildcard)
+  let activeManager = nextPick ? nextPick.manager : null;
+  let myNonWildCardPicks = [];
+  let myDraftedConfeds = [];
+  if (activeManager) {
+    myNonWildCardPicks = state.draftPicks.filter(p => p.manager === activeManager && p.round < 6);
+    myDraftedConfeds = myNonWildCardPicks.map(p => {
+      const team = getTeamById(p.teamId);
+      return team ? team.confederation : null;
+    }).filter(Boolean);
+  }
+
   // Render active pick text
   if (nextPick) {
     if (activeManagerEl) activeManagerEl.textContent = nextPick.manager;
     if (activeRoundEl) activeRoundEl.textContent = `Round ${nextPick.round}`;
-    if (activeRestrictionEl) activeRestrictionEl.textContent = `Restriction: ${nextPick.confed}`;
+    
+    if (activeRestrictionEl) {
+      if (nextPick.confed === 'Wild Card') {
+        activeRestrictionEl.textContent = `Restriction: Wild Card (Any Federation)`;
+      } else {
+        const allConfeds = ['CONMEBOL', 'UEFA', 'CONCACAF', 'CAF', 'AFC'];
+        const remaining = allConfeds.filter(c => !myDraftedConfeds.includes(c));
+        activeRestrictionEl.textContent = `Remaining slots: ${remaining.join(', ')}`;
+      }
+    }
   }
 
   // Render draft order timeline strip (scrollable)
@@ -1179,7 +1236,7 @@ function renderDraftRoom(teamStats) {
     sortedTeams.forEach(t => {
       const isAlreadyDrafted = state.draftPicks.find(p => p.teamId === t.id);
       const isWildCard = (requiredConfed === 'Wild Card');
-      const meetsRestriction = isWildCard || (t.confederation === requiredConfed);
+      const meetsRestriction = isWildCard || !myDraftedConfeds.includes(t.confederation);
       
       const card = document.createElement('div');
       
