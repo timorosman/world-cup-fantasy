@@ -132,7 +132,10 @@ function listenForStateChanges(callback) {
     if (pendingWrites) return;
 
     const data = snapshot.val();
-    if (data && typeof data === 'object' && Array.isArray(data.draftPicks)) {
+    if (data && typeof data === 'object' && ('leaguePhase' in data)) {
+      if (!data.draftPicks) data.draftPicks = [];
+      if (!data.matches) data.matches = [];
+      if (!data.trades) data.trades = [];
       callback(data);
     }
   });
@@ -146,7 +149,10 @@ function readStateFromFirebase() {
   return firebaseDb.ref(DB_STATE_PATH).once('value')
     .then((snapshot) => {
       const data = snapshot.val();
-      if (data && typeof data === 'object' && Array.isArray(data.draftPicks)) {
+      if (data && typeof data === 'object' && ('leaguePhase' in data)) {
+        if (!data.draftPicks) data.draftPicks = [];
+        if (!data.matches) data.matches = [];
+        if (!data.trades) data.trades = [];
         return data;
       }
       return null;

@@ -16,75 +16,73 @@ let apiMatchCache = []; // Raw API games for the live ticker
 // Maps API English team names → our internal team IDs
 // Covers all 48 qualified 2026 World Cup teams
 const TEAM_NAME_MAP = {
-  'Argentina': 'argentina',
+  // UEFA
   'France': 'france',
   'Spain': 'spain',
   'England': 'england',
-  'Brazil': 'brazil',
   'Belgium': 'belgium',
   'Netherlands': 'netherlands',
   'Portugal': 'portugal',
-  'Italy': 'italy',
   'Croatia': 'croatia',
   'Germany': 'germany',
-  'Colombia': 'colombia',
-  'Morocco': 'morocco',
-  'Uruguay': 'uruguay',
   'Switzerland': 'switzerland',
-  'Denmark': 'denmark',
-  'Japan': 'japan',
-  'United States': 'usa',
-  'USA': 'usa',
-  'Senegal': 'senegal',
-  'Iran': 'iran',
-  'Mexico': 'mexico',
   'Austria': 'austria',
-  'South Korea': 'south_korea',
-  'Ukraine': 'ukraine',
-  'Australia': 'australia',
   'Turkey': 'turkey',
-  'Poland': 'poland',
+  'Türkiye': 'turkey',
   'Sweden': 'sweden',
+  'Norway': 'norway',
+  'Czechia': 'czechia',
+  'Czech Republic': 'czechia',
+  'Scotland': 'scotland',
+  'Bosnia and Herzegovina': 'bosnia',
+  'Bosnia': 'bosnia',
+
+  // CONMEBOL
+  'Argentina': 'argentina',
+  'Brazil': 'brazil',
+  'Colombia': 'colombia',
+  'Uruguay': 'uruguay',
   'Ecuador': 'ecuador',
-  'Hungary': 'hungary',
-  'Serbia': 'serbia',
-  'Canada': 'canada',
-  'Panama': 'panama',
-  'Qatar': 'qatar',
+  'Paraguay': 'paraguay',
+
+  // CAF
+  'Morocco': 'morocco',
+  'Senegal': 'senegal',
   'Egypt': 'egypt',
-  'Venezuela': 'venezuela',
   'Ivory Coast': 'ivory_coast',
-  'Nigeria': 'nigeria',
-  'Chile': 'chile',
+  "Côte d'Ivoire": 'ivory_coast',
   'Tunisia': 'tunisia',
-  'Peru': 'peru',
   'Algeria': 'algeria',
-  'Costa Rica': 'costa_rica',
-  'Cameroon': 'cameroon',
-  'Mali': 'mali',
+  'DR Congo': 'dr_congo',
+  'Congo DR': 'dr_congo',
+  'South Africa': 'south_africa',
+  'Ghana': 'ghana',
+  'Cape Verde': 'cape_verde',
+  'Cabo Verde': 'cape_verde',
+
+  // AFC
+  'Japan': 'japan',
+  'Iran': 'iran',
+  'South Korea': 'south_korea',
+  'Australia': 'australia',
+  'Qatar': 'qatar',
+  'Uzbekistan': 'uzbekistan',
   'Iraq': 'iraq',
   'Saudi Arabia': 'saudi_arabia',
-  'Paraguay': 'paraguay',
-  'South Africa': 'south_africa',
-  'Jamaica': 'jamaica',
-  'Uzbekistan': 'uzbekistan',
-  'Ghana': 'ghana',
   'Jordan': 'jordan',
-  'UAE': 'uae',
-  'Honduras': 'honduras',
-  'El Salvador': 'el_salvador',
-  'Bolivia': 'bolivia',
-  'New Zealand': 'new_zealand',
-  // Additional teams in WC 2026 that may appear in the API
-  'Norway': 'norway',
-  'Scotland': 'scotland',
-  'Czech Republic': 'czech_republic',
-  'Bosnia and Herzegovina': 'bosnia',
-  'Cape Verde': 'cape_verde',
-  'Democratic Republic of the Congo': 'dr_congo',
-  'Haiti': 'haiti',
+
+  // CONCACAF
+  'United States': 'usa',
+  'USA': 'usa',
+  'Mexico': 'mexico',
+  'Canada': 'canada',
+  'Panama': 'panama',
   'Curaçao': 'curacao',
   'Curacao': 'curacao',
+  'Haiti': 'haiti',
+
+  // OFC
+  'New Zealand': 'new_zealand'
 };
 
 // Extra teams in WC 2026 not in original TEAMS_DB — we need them for match lookup
@@ -138,6 +136,11 @@ async function fetchAndSyncMatches() {
 
       if (!homeId || !awayId) continue; // Skip if we can't map the team
       if (homeId === awayId) continue;
+
+      // Check if both teams are qualified 2026 World Cup teams (present in TEAMS_DB)
+      const isHomeQualified = TEAMS_DB.some(t => t.id === homeId);
+      const isAwayQualified = TEAMS_DB.some(t => t.id === awayId);
+      if (!isHomeQualified || !isAwayQualified) continue;
 
       // Ensure teams are in our DB (or placeholder cache)
       ensureTeamExists(game.home_team_name_en, homeId);
@@ -329,64 +332,64 @@ setInterval(() => {
 
 // 1. Predefined Teams Database with FIFA Rankings (as of mid-2026 status)
 const TEAMS_DB = [
-  // UEFA
-  { id: 'argentina', name: 'Argentina', confederation: 'CONMEBOL', rank: 1 }, // Added here to CONMEBOL
+  // UEFA (16 teams)
   { id: 'france', name: 'France', confederation: 'UEFA', rank: 2 },
   { id: 'spain', name: 'Spain', confederation: 'UEFA', rank: 3 },
   { id: 'england', name: 'England', confederation: 'UEFA', rank: 4 },
-  { id: 'brazil', name: 'Brazil', confederation: 'CONMEBOL', rank: 5 },
   { id: 'belgium', name: 'Belgium', confederation: 'UEFA', rank: 6 },
   { id: 'netherlands', name: 'Netherlands', confederation: 'UEFA', rank: 7 },
   { id: 'portugal', name: 'Portugal', confederation: 'UEFA', rank: 8 },
-  { id: 'italy', name: 'Italy', confederation: 'UEFA', rank: 9 },
   { id: 'croatia', name: 'Croatia', confederation: 'UEFA', rank: 10 },
   { id: 'germany', name: 'Germany', confederation: 'UEFA', rank: 11 },
-  { id: 'colombia', name: 'Colombia', confederation: 'CONMEBOL', rank: 12 },
-  { id: 'morocco', name: 'Morocco', confederation: 'CAF', rank: 13 },
-  { id: 'uruguay', name: 'Uruguay', confederation: 'CONMEBOL', rank: 14 },
   { id: 'switzerland', name: 'Switzerland', confederation: 'UEFA', rank: 15 },
-  { id: 'denmark', name: 'Denmark', confederation: 'UEFA', rank: 16 },
-  { id: 'japan', name: 'Japan', confederation: 'AFC', rank: 17 },
-  { id: 'usa', name: 'USA', confederation: 'CONCACAF', rank: 18 },
-  { id: 'senegal', name: 'Senegal', confederation: 'CAF', rank: 19 },
-  { id: 'iran', name: 'Iran', confederation: 'AFC', rank: 20 },
-  { id: 'mexico', name: 'Mexico', confederation: 'CONCACAF', rank: 21 },
   { id: 'austria', name: 'Austria', confederation: 'UEFA', rank: 22 },
-  { id: 'south_korea', name: 'South Korea', confederation: 'AFC', rank: 23 },
-  { id: 'ukraine', name: 'Ukraine', confederation: 'UEFA', rank: 24 },
-  { id: 'australia', name: 'Australia', confederation: 'AFC', rank: 25 },
   { id: 'turkey', name: 'Turkey', confederation: 'UEFA', rank: 26 },
-  { id: 'poland', name: 'Poland', confederation: 'UEFA', rank: 28 },
   { id: 'sweden', name: 'Sweden', confederation: 'UEFA', rank: 29 },
+  { id: 'norway', name: 'Norway', confederation: 'UEFA', rank: 31 },
+  { id: 'czechia', name: 'Czechia', confederation: 'UEFA', rank: 40 },
+  { id: 'scotland', name: 'Scotland', confederation: 'UEFA', rank: 42 },
+  { id: 'bosnia', name: 'Bosnia and Herzegovina', confederation: 'UEFA', rank: 64 },
+
+  // CONMEBOL (6 teams)
+  { id: 'argentina', name: 'Argentina', confederation: 'CONMEBOL', rank: 1 },
+  { id: 'brazil', name: 'Brazil', confederation: 'CONMEBOL', rank: 5 },
+  { id: 'colombia', name: 'Colombia', confederation: 'CONMEBOL', rank: 12 },
+  { id: 'uruguay', name: 'Uruguay', confederation: 'CONMEBOL', rank: 14 },
   { id: 'ecuador', name: 'Ecuador', confederation: 'CONMEBOL', rank: 30 },
-  { id: 'hungary', name: 'Hungary', confederation: 'UEFA', rank: 31 },
-  { id: 'serbia', name: 'Serbia', confederation: 'UEFA', rank: 32 },
-  { id: 'canada', name: 'Canada', confederation: 'CONCACAF', rank: 33 },
-  { id: 'panama', name: 'Panama', confederation: 'CONCACAF', rank: 34 },
-  { id: 'qatar', name: 'Qatar', confederation: 'AFC', rank: 35 },
+  { id: 'paraguay', name: 'Paraguay', confederation: 'CONMEBOL', rank: 56 },
+
+  // CAF (10 teams)
+  { id: 'morocco', name: 'Morocco', confederation: 'CAF', rank: 13 },
+  { id: 'senegal', name: 'Senegal', confederation: 'CAF', rank: 19 },
   { id: 'egypt', name: 'Egypt', confederation: 'CAF', rank: 36 },
-  { id: 'venezuela', name: 'Venezuela', confederation: 'CONMEBOL', rank: 37 },
   { id: 'ivory_coast', name: 'Ivory Coast', confederation: 'CAF', rank: 38 },
-  { id: 'nigeria', name: 'Nigeria', confederation: 'CAF', rank: 39 },
-  { id: 'chile', name: 'Chile', confederation: 'CONMEBOL', rank: 40 },
   { id: 'tunisia', name: 'Tunisia', confederation: 'CAF', rank: 41 },
-  { id: 'peru', name: 'Peru', confederation: 'CONMEBOL', rank: 42 },
   { id: 'algeria', name: 'Algeria', confederation: 'CAF', rank: 46 },
-  { id: 'costa_rica', name: 'Costa Rica', confederation: 'CONCACAF', rank: 49 },
-  { id: 'cameroon', name: 'Cameroon', confederation: 'CAF', rank: 51 },
-  { id: 'mali', name: 'Mali', confederation: 'CAF', rank: 53 },
+  { id: 'dr_congo', name: 'DR Congo', confederation: 'CAF', rank: 46 },
+  { id: 'south_africa', name: 'South Africa', confederation: 'CAF', rank: 57 },
+  { id: 'ghana', name: 'Ghana', confederation: 'CAF', rank: 64 },
+  { id: 'cape_verde', name: 'Cape Verde', confederation: 'CAF', rank: 67 },
+
+  // AFC (9 teams)
+  { id: 'japan', name: 'Japan', confederation: 'AFC', rank: 17 },
+  { id: 'iran', name: 'Iran', confederation: 'AFC', rank: 20 },
+  { id: 'south_korea', name: 'South Korea', confederation: 'AFC', rank: 23 },
+  { id: 'australia', name: 'Australia', confederation: 'AFC', rank: 25 },
+  { id: 'qatar', name: 'Qatar', confederation: 'AFC', rank: 35 },
+  { id: 'uzbekistan', name: 'Uzbekistan', confederation: 'AFC', rank: 50 },
   { id: 'iraq', name: 'Iraq', confederation: 'AFC', rank: 55 },
   { id: 'saudi_arabia', name: 'Saudi Arabia', confederation: 'AFC', rank: 56 },
-  { id: 'paraguay', name: 'Paraguay', confederation: 'CONMEBOL', rank: 56 },
-  { id: 'south_africa', name: 'South Africa', confederation: 'CAF', rank: 57 },
-  { id: 'jamaica', name: 'Jamaica', confederation: 'CONCACAF', rank: 59 },
-  { id: 'uzbekistan', name: 'Uzbekistan', confederation: 'AFC', rank: 62 },
-  { id: 'ghana', name: 'Ghana', confederation: 'CAF', rank: 64 },
   { id: 'jordan', name: 'Jordan', confederation: 'AFC', rank: 68 },
-  { id: 'uae', name: 'UAE', confederation: 'AFC', rank: 69 },
-  { id: 'honduras', name: 'Honduras', confederation: 'CONCACAF', rank: 76 },
-  { id: 'el_salvador', name: 'El Salvador', confederation: 'CONCACAF', rank: 81 },
-  { id: 'bolivia', name: 'Bolivia', confederation: 'CONMEBOL', rank: 84 },
+
+  // CONCACAF (6 teams)
+  { id: 'usa', name: 'USA', confederation: 'CONCACAF', rank: 18 },
+  { id: 'mexico', name: 'Mexico', confederation: 'CONCACAF', rank: 21 },
+  { id: 'canada', name: 'Canada', confederation: 'CONCACAF', rank: 33 },
+  { id: 'panama', name: 'Panama', confederation: 'CONCACAF', rank: 34 },
+  { id: 'curacao', name: 'Curaçao', confederation: 'CONCACAF', rank: 82 },
+  { id: 'haiti', name: 'Haiti', confederation: 'CONCACAF', rank: 83 },
+
+  // OFC (1 team)
   { id: 'new_zealand', name: 'New Zealand', confederation: 'OFC', rank: 94 }
 ];
 
@@ -736,6 +739,11 @@ function makeDraftPick(teamId) {
   // 2. Confederation restriction check (must be unique federation for rounds 1-5, any for wild card round 6)
   const isWildCardRound = (confed === 'Wild Card');
   if (!isWildCardRound) {
+    const allowed = ['UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC'];
+    if (!allowed.includes(team.confederation)) {
+      showNotification(`${team.name} is from ${team.confederation}. Rounds 1-5 require choosing from UEFA, CONMEBOL, CONCACAF, CAF, or AFC.`, "error");
+      return;
+    }
     const myRounds1to5Picks = state.draftPicks.filter(p => p.manager === manager && p.round < 6);
     const hasConfed = myRounds1to5Picks.some(p => {
       const t = getTeamById(p.teamId);
@@ -1236,7 +1244,8 @@ function renderDraftRoom(teamStats) {
     sortedTeams.forEach(t => {
       const isAlreadyDrafted = state.draftPicks.find(p => p.teamId === t.id);
       const isWildCard = (requiredConfed === 'Wild Card');
-      const meetsRestriction = isWildCard || !myDraftedConfeds.includes(t.confederation);
+      const allowed = ['UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC'];
+      const meetsRestriction = isWildCard || (allowed.includes(t.confederation) && !myDraftedConfeds.includes(t.confederation));
       
       const card = document.createElement('div');
       
