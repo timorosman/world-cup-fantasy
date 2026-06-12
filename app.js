@@ -1942,14 +1942,27 @@ window.addEventListener('DOMContentLoaded', async () => {
   const theme = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
 
-  // Try connecting to Firebase if previously configured
+  // Try connecting to Firebase (uses hardcoded config as fallback)
   const fbConnected = tryAutoConnect();
 
   renderApp();
 
-  // If Firebase is connected, load state from it and set up real-time listener
+  // Smart sync: decide whether to push local state or pull from Firebase
   if (fbConnected) {
-    await loadStateFromFirebase();
+    const localHasData = state.draftPicks && state.draftPicks.length > 0;
+
+    if (localHasData) {
+      // This device has draft data (e.g. the laptop) — push it to Firebase
+      // so other devices can pull it
+      console.log('[Sync] Local state has data — pushing to Firebase');
+      await syncStateToFirebase(state);
+    } else {
+      // This device is empty (e.g. a phone) — pull from Firebase
+      console.log('[Sync] Local state is empty — pulling from Firebase');
+      await loadStateFromFirebase();
+    }
+
+    // Set up real-time listener for ongoing changes from any device
     listenForStateChanges(applyRemoteState);
     listenForPresence((managers) => {
       updateConnectionUI();

@@ -227,9 +227,31 @@ function updateConnectionUI() {
 
 // ── Setup Flow ───────────────────────────────────────────
 
+// Hardcoded Firebase config so ALL devices auto-connect without manual setup
+const HARDCODED_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCUlgX2jZfpvkr92TDLeYPJ6YDe77SjyVs",
+  authDomain: "worldcup-4e695.firebaseapp.com",
+  databaseURL: "https://worldcup-4e695-default-rtdb.firebaseio.com",
+  projectId: "worldcup-4e695",
+  storageBucket: "worldcup-4e695.firebasestorage.app",
+  messagingSenderId: "76034707292",
+  appId: "1:76034707292:web:028dd43ff8d9ac1dce7b99",
+  measurementId: "G-V5HQ1MS8YD"
+};
+
 function tryAutoConnect() {
-  const config = getStoredFirebaseConfig();
-  if (!config) return false;
+  // First try stored config (user may have customized it)
+  let config = getStoredFirebaseConfig();
+  
+  // Fall back to hardcoded config
+  if (!config) {
+    config = HARDCODED_FIREBASE_CONFIG;
+  }
+
+  // Auto-generate databaseURL if missing
+  if (!config.databaseURL && config.projectId) {
+    config.databaseURL = `https://${config.projectId}-default-rtdb.firebaseio.com`;
+  }
 
   const success = initFirebase(config);
   if (success) {
