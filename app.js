@@ -519,9 +519,16 @@ async function loadStateFromFirebase() {
   if (!isFirebaseReady()) return;
   const fbState = await readStateFromFirebase();
   if (fbState) {
+    // SAFETY: Don't overwrite local state with fewer draft picks
+    const localPickCount = (state.draftPicks && state.draftPicks.length) || 0;
+    const remotePickCount = (fbState.draftPicks && fbState.draftPicks.length) || 0;
+    if (localPickCount > 0 && remotePickCount === 0) {
+      console.warn('[Sync] Firebase has no picks but local has', localPickCount, '— pushing local to Firebase instead');
+      await syncStateToFirebase(state);
+      return;
+    }
     state = fbState;
     ensureStateDefaults();
-    // Also update local cache
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
     renderApp();
   }
@@ -536,6 +543,26 @@ function ensureStateDefaults() {
 
 // Apply an incoming Firebase state update (from another device)
 function applyRemoteState(newState) {
+  // SAFETY: Never overwrite local state with fewer draft picks
+  // This prevents the race condition where an empty tab wipes out good data
+  const localPickCount = (state.draftPicks && state.draftPicks.length) || 0;
+  const remotePickCount = (newState.draftPicks && newState.draftPicks.length) || 0;
+  const localMatchCount = (state.matches && state.matches.length) || 0;
+  const remoteMatchCount = (newState.matches && newState.matches.length) || 0;
+
+  if (localPickCount > 0 && remotePickCount === 0) {
+    console.warn('[Sync] BLOCKED: Remote state has 0 picks but local has', localPickCount, '— keeping local state');
+    // Push local state back to Firebase to fix it
+    syncStateToFirebase(state);
+    return;
+  }
+
+  if (localPickCount > remotePickCount && localMatchCount > remoteMatchCount) {
+    console.warn('[Sync] BLOCKED: Remote state has less data than local — keeping local state');
+    syncStateToFirebase(state);
+    return;
+  }
+
   state = newState;
   ensureStateDefaults();
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
