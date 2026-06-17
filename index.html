@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2026 World Cup Fantasy League</title>
   <meta name="description" content="Fantasy Draft League tracker for the 2026 FIFA World Cup. Real-time standings, snake draft board, score logger, and trade hub.">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
   <!-- Firebase SDK (compat mode for simple CDN usage) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -227,37 +227,7 @@
               </div>
             </div>
 
-            <!-- Penalties & Disciplinary fields -->
-            <h3 class="font-outfit font-bold" style="font-size: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Disciplinary & Match Incidents</h3>
-            
-            <div class="grid-2col" style="margin-bottom: 1rem;">
-              <div class="form-group">
-                <label for="match-ownGoalsA">Own Goals by Team A (-1pt ea)</label>
-                <input type="number" id="match-ownGoalsA" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="match-ownGoalsB">Own Goals by Team B (-1pt ea)</label>
-                <input type="number" id="match-ownGoalsB" value="0" min="0">
-              </div>
-            </div>
 
-            <div class="grid-2col" style="margin-bottom: 1rem;">
-              <div class="form-group">
-                <label for="match-redCardsA">Red Cards for Team A (-2pts ea)</label>
-                <input type="number" id="match-redCardsA" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="match-redCardsB">Red Cards for Team B (-2pts ea)</label>
-                <input type="number" id="match-redCardsB" value="0" min="0">
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label for="match-shootout-winner">Penalty Shootout Winner (+2pts)</label>
-              <select id="match-shootout-winner" disabled>
-                <option value="">-- Shootout Only on Draw --</option>
-              </select>
-            </div>
 
             <button type="submit" class="btn btn-gold" style="width: 100%;">Record Match</button>
           </form>
@@ -429,12 +399,9 @@
           </div>
 
           <div class="rule-group">
-            <div class="rule-group-title">Disciplinary & Bonuses</div>
+            <div class="rule-group-title">Bonuses</div>
             <ul class="rule-list">
-              <li>Penalty Shootout Win: <strong>+2 pts</strong></li>
               <li>Upset Bonus (win vs higher-ranked FIFA opponent): <strong>+3 pts</strong></li>
-              <li>Red Card: <strong>-2 pts</strong></li>
-              <li>Own Goal: <strong>-1 pt</strong></li>
             </ul>
           </div>
 
@@ -524,7 +491,7 @@
 
   </div>
 
-  <script src="firebase-sync.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="firebase-sync.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

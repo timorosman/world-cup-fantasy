@@ -663,16 +663,12 @@ function calculateStats() {
     const stats = teamStats[t.id];
     
     // Base: Win=3, Draw=1, Goal=+1, Clean Sheet=+1
-    // Penalties: Own Goal=-1, Red Card=-2
-    // Bonuses: Penalty Win=+2, Upset Win=+3
+    // Bonuses: Upset Win=+3
     const matchPts = (stats.wins * 3) +
                      (stats.draws * 1) +
                      (stats.goalsScored * 1) +
                      (stats.cleanSheets * 1) +
-                     (stats.shootoutWins * 2) +
-                     (stats.upsetBonuses * 3) -
-                     (stats.ownGoals * 1) -
-                     (stats.redCards * 2);
+                     (stats.upsetBonuses * 3);
     
     stats.matchPoints = matchPts;
 
@@ -1416,29 +1412,27 @@ function renderMatchCenter(teamStats) {
         item.className = 'match-log-item';
         
         let shootoutTxt = '';
-        if (m.shootoutWinnerId) {
-          const sWinner = getTeamById(m.shootoutWinnerId);
-          shootoutTxt = ` (PK Winner: ${sWinner.name})`;
+        
+        // Detect upset for display
+        let upsetBadge = '';
+        if (m.goalsA !== m.goalsB) {
+          const winnerId = m.goalsA > m.goalsB ? m.teamAId : m.teamBId;
+          const loserId = m.goalsA > m.goalsB ? m.teamBId : m.teamAId;
+          const winnerDb = getTeamById(winnerId);
+          const loserDb = getTeamById(loserId);
+          if (winnerDb.rank > loserDb.rank && winnerDb.rank < 999 && loserDb.rank < 999) {
+            upsetBadge = `<span class="match-badge" style="background: rgba(245,158,11,0.15); color: var(--accent-gold);">⚡ Upset! #${winnerDb.rank} beat #${loserDb.rank} (+3 pts)</span>`;
+          }
         }
-
-        let penaltyCardsText = [];
-        if (m.ownGoalsA > 0) penaltyCardsText.push(`${teamA.name} OG: +${m.ownGoalsA}`);
-        if (m.ownGoalsB > 0) penaltyCardsText.push(`${teamB.name} OG: +${m.ownGoalsB}`);
-        if (m.redCardsA > 0) penaltyCardsText.push(`${teamA.name} RC: +${m.redCardsA}`);
-        if (m.redCardsB > 0) penaltyCardsText.push(`${teamB.name} RC: +${m.redCardsB}`);
-
-        const penaltyMeta = penaltyCardsText.length > 0 
-          ? `<span class="match-badge" style="background: rgba(239,68,68,0.15); color: var(--danger);">${penaltyCardsText.join(', ')}</span>`
-          : '';
 
         item.innerHTML = `
           <div class="match-log-details">
             <div class="match-log-scoreline">
-              ${teamA.name} <span class="text-gold">${m.goalsA}</span> - <span class="text-gold">${m.goalsB}</span> ${teamB.name} ${shootoutTxt}
+              ${teamA.name} <span style="color: var(--text-muted); font-size: 0.75rem;">(#${teamA.rank})</span> <span class="text-gold">${m.goalsA}</span> - <span class="text-gold">${m.goalsB}</span> ${teamB.name} <span style="color: var(--text-muted); font-size: 0.75rem;">(#${teamB.rank})</span> ${shootoutTxt}
             </div>
             <div class="match-log-meta">
               <span class="match-badge">${new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-              ${penaltyMeta}
+              ${upsetBadge}
             </div>
           </div>
           <button class="btn btn-icon btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
@@ -1509,27 +1503,17 @@ function handleMatchSubmit(e) {
   const teamB = document.getElementById('match-teamB').value;
   const goalsA = document.getElementById('match-goalsA').value;
   const goalsB = document.getElementById('match-goalsB').value;
-  const ownGoalsA = document.getElementById('match-ownGoalsA').value || 0;
-  const ownGoalsB = document.getElementById('match-ownGoalsB').value || 0;
-  const redCardsA = document.getElementById('match-redCardsA').value || 0;
-  const redCardsB = document.getElementById('match-redCardsB').value || 0;
-  const shootoutWinner = document.getElementById('match-shootout-winner').value || null;
 
   if (!teamA || !teamB) {
     showNotification("Please select both teams!", "error");
     return;
   }
 
-  addMatch(teamA, teamB, goalsA, goalsB, ownGoalsA, ownGoalsB, redCardsA, redCardsB, shootoutWinner);
+  addMatch(teamA, teamB, goalsA, goalsB, 0, 0, 0, 0, null);
   
   // Clear inputs
   document.getElementById('match-goalsA').value = 0;
   document.getElementById('match-goalsB').value = 0;
-  document.getElementById('match-ownGoalsA').value = 0;
-  document.getElementById('match-ownGoalsB').value = 0;
-  document.getElementById('match-redCardsA').value = 0;
-  document.getElementById('match-redCardsB').value = 0;
-  document.getElementById('match-shootout-winner').value = '';
 }
 
 function updateShootoutSelect() {
