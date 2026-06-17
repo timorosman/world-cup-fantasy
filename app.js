@@ -481,7 +481,8 @@ function getInitialState() {
     knockoutProgress: {}, // teamId -> { advKnockout: bool, r32: bool, r16: bool, qf: bool, sf: bool, final: bool, champ: bool }
     trades: [], // Array of trade logs
     waiversUsed: {}, // managerName -> bool (tracks if manager used their 1 allowed waiver)
-    coinFlipWinner: null // managerName resolved by manual coinflip tiebreaker if needed
+    coinFlipWinner: null, // managerName resolved by manual coinflip tiebreaker if needed
+    manualAdjustments: { australia: 3 } // teamId -> bonus/penalty points (e.g. retroactive upset bonuses)
   };
 }
 
@@ -539,6 +540,9 @@ function ensureStateDefaults() {
   if (!state.waiversUsed) state.waiversUsed = {};
   if (!state.knockoutProgress) state.knockoutProgress = {};
   if (!state.coinFlipWinner) state.coinFlipWinner = null;
+  if (!state.manualAdjustments) state.manualAdjustments = {};
+  // Retroactive upset bonus: Australia beat Turkey when Turkey was ranked higher
+  if (!state.manualAdjustments.australia) state.manualAdjustments.australia = 3;
 }
 
 // Apply an incoming Firebase state update (from another device)
@@ -684,7 +688,12 @@ function calculateStats() {
     if (kp.champ) knockPts += 25;
 
     stats.knockoutPoints = knockPts;
-    stats.totalPoints = stats.matchPoints + stats.knockoutPoints;
+
+    // Apply manual adjustments (e.g. retroactive upset bonuses)
+    const manualAdj = (state.manualAdjustments && state.manualAdjustments[t.id]) || 0;
+    stats.manualAdjustment = manualAdj;
+
+    stats.totalPoints = stats.matchPoints + stats.knockoutPoints + manualAdj;
   });
 
   // Compile Manager Stats
